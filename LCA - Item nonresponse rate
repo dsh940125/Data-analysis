@@ -1,0 +1,621 @@
+
+##################### Subset the datasets to financial respondents only ######################
+# Load any one section of the HRS 2004 dataset. Find the HHID and PN of the financial respondents. Let's say demographic section.
+setwd("C:\\Users\\shaohua\\Documents\\random")
+load("H04B_R.RData")
+
+# Subset the section to only financial respondents
+H04B_R <- subset(H04B_R, JFINR == 1)
+
+# Subset the rest sections to only financial respondents
+subs <- function(x){
+  if ("PN" %in% names(x)){
+    x <- merge(x, H04B_R[,c("HHID", "PN")], by = c("HHID", "PN"))
+  }
+  else 
+  {x <- merge(x, H04B_R[,c("HHID", "PN")], by.y = c("HHID", "PN"), by.x = c("HHID", "JPN_FIN"))}
+  return(x)
+}
+
+num <- function(x){
+  x <- data.frame(apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(v){as.numeric(as.character(v))}))
+  return(x)
+}
+
+########################### Recoding the missing data ##############################
+hrsreco <- function(x){
+  # import the dataset we created
+  for (i in seq(3, length(names(x))-2)){
+    if (all(is.na(x[, i]))) {
+      next
+    }
+    if (max(x[, i], na.rm = T) <= 9){
+      x[, i][x[, i] == 8] <- -8
+      x[, i][x[, i] == 9] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 9 & max(x[, i], na.rm = T) <= 99){
+      x[, i][x[, i] == 98] <- -8
+      x[, i][x[, i] == 99] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 99 & max(x[, i], na.rm = T) <= 999){
+      x[, i][x[, i] == 998] <- -8
+      x[, i][x[, i] == 999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 999 & max(x[, i], na.rm = T) <= 9999){
+      x[, i][x[, i] == 9998] <- -8
+      x[, i][x[, i] == 9999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 9999 & max(x[, i], na.rm = T) <= 99999){
+      x[, i][x[, i] == 99998] <- -8
+      x[, i][x[, i] == 99999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 99999 & max(x[, i], na.rm = T) <= 999999){
+      x[, i][x[, i] == 999998] <- -8
+      x[, i][x[, i] == 999999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 999999 & max(x[, i], na.rm = T) <= 9999999){
+      x[, i][x[, i] == 9999998] <- -8
+      x[, i][x[, i] == 9999999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 9999999 & max(x[, i], na.rm = T) <= 99999999){
+      x[, i][x[, i] == 99999998] <- -8
+      x[, i][x[, i] == 99999999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 99999999 & max(x[, i], na.rm = T) <= 999999999){
+      x[, i][x[, i] == 999999998] <- -8
+      x[, i][x[, i] == 999999999] <- -9
+      next
+    }
+    if (max(x[, i], na.rm = T) > 999999999 & max(x[, i], na.rm = T) <= 9999999999){
+      x[, i][x[, i] == 9999999998] <- -8
+      x[, i][x[, i] == 9999999999] <- -9
+      next
+    }
+  }
+  x[is.na(x)] <- -1
+  return(x)
+}
+
+########################### Making the missing data frequency table ##############################
+dataname <- c("H04B_R", "H04C_R", "H04D_R", "H04F_R", "H04G_R", "H04H_H", "H04I_R", "H04J_R", 
+              "H04K_R", "H04L_R", "H04LB_R", "H04M1_R", "H04M2_R", "H04N_R", "H04P_R", "H04Q_H", 
+              "H04R_H", "H04RC_R", "H04S_R", "H04T_R", "H04U_H", "H04V_R", "H04Y_R", "H04W_R")
+hrsmistab <- function(x){
+  # import the dataset we created
+  # does not include the first two variables, HHID and PN, and last two variables, data model version and data release version
+  y <- data.frame(
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1) & (m == -8 | m == -9)])}), 
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1) & (m == -8 | m == -9)]) / length(m[!(m == -1)])}),
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1) & !(m == -8) & !(m == -9)])}),
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1) & !(m == -8 | m == -9)]) / length(m[!(m == -1)])}),
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1)])}),
+    apply(x[, 5:length(names(x))-2], MARGIN = 2, FUN = function(m){length(m[!(m == -1)]) / length(m)}),
+    rep(dataname[xxx], length(names(x))-4)
+  )
+  return(y)
+}
+
+
+
+## All the datasets have been transfered to RData form beforehand.
+# Load all the datasets
+load("H04C_R.RData")
+load("H04D_R.RData")
+load("H04F_R.RData")
+load("H04G_R.RData")
+load("H04H_H.RData")
+load("H04I_R.RData")
+load("H04J_R.RData")
+load("H04K_R.RData")
+load("H04L_R.RData")
+load("H04LB_R.RData")
+load("H04M1_R.RData")
+load("H04M2_R.RData")
+load("H04N_R.RData")
+load("H04P_R.RData")
+load("H04Q_H.RData")
+load("H04R_H.RData")
+load("H04RC_R.RData")
+load("H04S_R.RData")
+load("H04T_R.RData")
+load("H04U_H.RData")
+load("H04V_R.RData")
+load("H04Y_R.RData")
+load("H04W_R.RData")
+
+hh <- c("missing","prop.missing","non-missing","prop.non-missing","applicable respondents","prop.applicable","dataset name")
+xxx <- 1
+for (mmm in list(H04B_R, H04C_R, H04D_R, H04F_R, H04G_R, H04H_H, H04I_R, H04J_R, H04K_R, H04L_R, 
+                 H04LB_R, H04M1_R, H04M2_R, H04N_R, H04P_R, H04Q_H, H04R_H, H04RC_R, H04S_R, 
+                 H04T_R, H04U_H, H04V_R, H04Y_R, H04W_R)){
+  mmm <- subs(mmm)
+  mmm <- num(mmm)
+  mmm <- hrsreco(mmm)
+  hh <- rbind(hh, hrsmistab(mmm))
+  print(dim(mmm))
+  xxx <- xxx+1
+}
+
+hhh <- hh[2:5706,]
+names(hhh) <- c("missing","prop.missing","non-missing","prop.non-missing","applicable respondents","prop.applicable","dataset name")
+hhh <- hhh[order(hhh$`prop.applicable`, decreasing = T),]
+write.csv(hhh, "MissingDataCount.csv")
+
+# Combine all the dataset into one. Subset the variables with high missing data that we previously defined. Recode the variables into missing vs. nonmissing
+cc <- H04B_R
+
+for (mmm in list(H04B_R, H04C_R, H04D_R, H04F_R, H04G_R, H04H_H, H04I_R, H04J_R, H04K_R, H04L_R, 
+                 H04LB_R, H04M1_R, H04M2_R, H04N_R, H04P_R, H04Q_H, H04R_H, H04RC_R, H04S_R, 
+                 H04T_R, H04U_H, H04V_R, H04Y_R, H04W_R)){
+  mmm <- subs(mmm)
+  mmm <- num(mmm)
+  mmm <- hrsreco(mmm)
+  cc <- cbind(cc, mmm)
+}
+
+ccc <- cc[, c("HHID", "PN", "JQ345", "JV000", "JQ371", "JH075", "JP047", "JQ417", "JN198", "JP034", "JP041",
+                   "JD142", "JP004", "JD143", "JP070", "JN147", "JG097", "JP029", "JD144", "JP005",
+                   "JQ426", "JC215", "JQ349")]
+for (i in seq(3, 23)){
+  ccc[,i][ccc[,i] != -8 & ccc[,i] != -9] <- 0 # non-missing
+  ccc[,i][ccc[,i] == -8 | ccc[,i] == -9] <- 1 # missing
+}
+
+############################ Do the LCA model ##############################
+
+library(poLCA)
+library(ggplot2)
+
+# Make a two class model
+set.seed(12345)
+fit2 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=2, nrep=10, data=ccc)
+
+# Make a three class model
+fit3 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=3, nrep=10, data=ccc)
+
+# Make a four class model
+fit4 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=4, nrep=10, data=ccc)
+
+# Make a five class model
+fit5 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=5, nrep=10, data=ccc)
+
+# Make a six class model
+fit6 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=6, nrep=10, data=ccc)
+
+# Make a seven class model
+fit7 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=7, nrep=10, data=ccc)
+
+# Make a eight class model
+fit8 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=8, nrep=10, data=ccc)
+
+# Make a nine class model
+fit9 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=9, nrep=10, data=ccc)
+
+# Make a ten class model
+fit10 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                   JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                   JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                   JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                   JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                   JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                   JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+             maxiter=50000, nclass=10, nrep=10, data=ccc)
+
+# Make a eleven class model
+fit11 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                    JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                    JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                    JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                    JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                    JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                    JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+              maxiter=50000, nclass=11, nrep=10, data=ccc)
+
+# Make a eleven class model
+fit15 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                    JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                    JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                    JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                    JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                    JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                    JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+              maxiter=50000, nclass=15, nrep=10, data=ccc)
+
+# Make a twenty-one class model
+fit21 = poLCA(cbind(JQ345 = JQ345 + 1, JV000 = JV000 + 1, JQ371 = JQ371 + 1, 
+                    JH075 = JH075 + 1, JP047 = JP047 + 1, JQ417 = JQ417 + 1,
+                    JN198 = JN198 + 1, JP034 = JP034 + 1, JP041 = JP041 + 1,
+                    JD142 = JD142 + 1, JP004 = JP004 + 1, JD143 = JD143 + 1,
+                    JP070 = JP070 + 1, JN147 = JN147 + 1, JG097 = JG097 + 1,
+                    JP029 = JP029 + 1, JD144 = JD144 + 1, JP005 = JP005 + 1,
+                    JQ426 = JQ426 + 1, JC215 = JC215 + 1, JQ349 = JQ349 + 1) ~ 1, 
+              maxiter=50000, nclass=21, nrep=10, data=ccc)
+
+###### Calculate p value for likelihood ratio test and Pearson's chi square test of model fit ########################
+
+# 2 class
+1-pchisq(15941.48, 13542) # <0.001
+1-pchisq(4564135, 13542) # <0.001
+
+# 3 class
+1-pchisq(13510.9, 13520) # 0.5204559
+1-pchisq(4224316, 13520) # <0.001
+
+# 4 class
+1-pchisq(12376.65, 13498) # 1
+1-pchisq(4937235, 13498) # <0.001
+
+# 5 class
+1-pchisq(12011.07, 13476) # 1
+1-pchisq(2016937, 13476) # <0.001
+
+# 6 class
+1-pchisq(11700.81, 13454) # 1
+1-pchisq(2359431, 13454) # <0.001
+
+# 7 class
+1-pchisq(11443.1026, 13432) # 1
+1-pchisq(1570316, 13432) # <0.001
+
+# 8 class
+1-pchisq(11302.9287, 13410) # 1
+1-pchisq(1500126.9, 13410) # <0.001
+
+# 9 class
+1-pchisq(11186.0092, 13388) # 1
+1-pchisq(1547345.22, 13388) # <0.001
+
+# 10 class
+1-pchisq(11093.2828, 13366) # 1
+1-pchisq(1200310.15, 13366) # <0.001
+
+# 15 class
+1-pchisq(10692.6303, 13256) # 1
+1-pchisq(997162.342, 13256) # <0.001
+
+# 21 class
+1-pchisq(10358.7272, 13124) # 1
+1-pchisq(1030611.71, 13124) # <0.001
+
+######################### Entropy Calculation ##############################
+# Entropy calculation function
+entropy<-function (p) sum(-p*log(p))
+
+### 2 class
+error_prior<-entropy(fit2$P) 
+error_post<-mean(apply(fit2$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.73
+
+### 3 class
+error_prior<-entropy(fit3$P) 
+error_post<-mean(apply(fit3$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6801
+
+### 4 class
+error_prior<-entropy(fit4$P) 
+error_post<-mean(apply(fit4$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.7014
+
+### 5 class
+error_prior<-entropy(fit5$P) 
+error_post<-mean(apply(fit5$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6388
+
+### 6 class
+error_prior<-entropy(fit6$P) 
+error_post<-mean(apply(fit6$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6472
+
+### 7 class
+error_prior<-entropy(fit7$P) 
+error_post<-mean(apply(fit7$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6387
+
+### 8 class
+error_prior<-entropy(fit8$P) 
+error_post<-mean(apply(fit8$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6699
+
+### 9 class
+error_prior<-entropy(fit9$P) 
+error_post<-mean(apply(fit9$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6647
+
+### 10 class
+error_prior<-entropy(fit10$P) 
+error_post<-mean(apply(fit10$posterior,1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.6888
+
+### 15 class
+error_prior<-entropy(fit15$P) 
+error_post<-mean(apply(data.frame(as.numeric(as.character(fit15$posterior))),1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.9718
+
+### 21 class
+error_prior<-entropy(fit21$P) 
+error_post<-mean(apply(data.frame(as.numeric(as.character(fit21$posterior))),1, entropy),na.rm = TRUE)
+round(((error_prior-error_post) / error_prior),4) # 0.9759
+
+############################## Make the solution plot ###########################
+# Create a data frame of the probability of missing in each of the seven classes
+ff7 <- data.frame(c(rep("JQ345", 7), rep("JV000", 7), rep("JQ371",7), rep("JH075",7), 
+                    rep("JP047", 7), rep("JQ417", 7), rep("JN198", 7), rep("JP034", 7),
+                    rep("JP041", 7), rep("JD142", 7), rep("JP004", 7), rep("JD143", 7), 
+                    rep("JP070", 7), rep("JN147", 7), rep("JG097", 7), rep("JP029", 7), 
+                    rep("JD144", 7), rep("JP005", 7), rep("JQ426", 7), rep("JC215", 7),
+                    rep("JQ349", 7)),
+                  c(fit7$probs$JQ345[1,2], fit7$probs$JQ345[2,2], fit7$probs$JQ345[3,2], fit7$probs$JQ345[4,2],fit7$probs$JQ345[5,2], fit7$probs$JQ345[6,2],fit7$probs$JQ345[7,2],
+                    fit7$probs$JV000[1,2], fit7$probs$JV000[2,2], fit7$probs$JV000[3,2], fit7$probs$JV000[4,2],fit7$probs$JV000[5,2], fit7$probs$JV000[6,2],fit7$probs$JV000[7,2],
+                    fit7$probs$JQ371[1,2], fit7$probs$JQ371[2,2], fit7$probs$JQ371[3,2], fit7$probs$JQ371[4,2],fit7$probs$JQ371[5,2], fit7$probs$JQ371[6,2],fit7$probs$JQ371[7,2],
+                    fit7$probs$JH075[1,2], fit7$probs$JH075[2,2], fit7$probs$JH075[3,2], fit7$probs$JH075[4,2],fit7$probs$JH075[5,2], fit7$probs$JH075[6,2],fit7$probs$JH075[7,2],
+                    fit7$probs$JP047[1,2], fit7$probs$JP047[2,2], fit7$probs$JP047[3,2], fit7$probs$JP047[4,2],fit7$probs$JP047[5,2], fit7$probs$JP047[6,2],fit7$probs$JP047[7,2],
+                    fit7$probs$JQ417[1,2], fit7$probs$JQ417[2,2], fit7$probs$JQ417[3,2], fit7$probs$JQ417[4,2],fit7$probs$JQ417[5,2], fit7$probs$JQ417[6,2],fit7$probs$JQ417[7,2],
+                    fit7$probs$JN198[1,2], fit7$probs$JN198[2,2], fit7$probs$JN198[3,2], fit7$probs$JN198[4,2],fit7$probs$JN198[5,2], fit7$probs$JN198[6,2],fit7$probs$JN198[7,2],
+                    fit7$probs$JP034[1,2], fit7$probs$JP034[2,2], fit7$probs$JP034[3,2], fit7$probs$JP034[4,2],fit7$probs$JP034[5,2], fit7$probs$JP034[6,2],fit7$probs$JP034[7,2],
+                    fit7$probs$JP041[1,2], fit7$probs$JP041[2,2], fit7$probs$JP041[3,2], fit7$probs$JP041[4,2],fit7$probs$JP041[5,2], fit7$probs$JP041[6,2],fit7$probs$JP041[7,2],
+                    fit7$probs$JD142[1,2], fit7$probs$JD142[2,2], fit7$probs$JD142[3,2], fit7$probs$JD142[4,2],fit7$probs$JD142[5,2], fit7$probs$JD142[6,2],fit7$probs$JD142[7,2],
+                    fit7$probs$JP004[1,2], fit7$probs$JP004[2,2], fit7$probs$JP004[3,2], fit7$probs$JP004[4,2],fit7$probs$JP004[5,2], fit7$probs$JP004[6,2],fit7$probs$JP004[7,2],
+                    fit7$probs$JD143[1,2], fit7$probs$JD143[2,2], fit7$probs$JD143[3,2], fit7$probs$JD143[4,2],fit7$probs$JD143[5,2], fit7$probs$JD143[6,2],fit7$probs$JD143[7,2],
+                    fit7$probs$JP070[1,2], fit7$probs$JP070[2,2], fit7$probs$JP070[3,2], fit7$probs$JP070[4,2],fit7$probs$JP070[5,2], fit7$probs$JP070[6,2],fit7$probs$JP070[7,2],
+                    fit7$probs$JN147[1,2], fit7$probs$JN147[2,2], fit7$probs$JN147[3,2], fit7$probs$JN147[4,2],fit7$probs$JN147[5,2], fit7$probs$JN147[6,2],fit7$probs$JN147[7,2],
+                    fit7$probs$JG097[1,2], fit7$probs$JG097[2,2], fit7$probs$JG097[3,2], fit7$probs$JG097[4,2],fit7$probs$JG097[5,2], fit7$probs$JG097[6,2],fit7$probs$JG097[7,2],
+                    fit7$probs$JP029[1,2], fit7$probs$JP029[2,2], fit7$probs$JP029[3,2], fit7$probs$JP029[4,2],fit7$probs$JP029[5,2], fit7$probs$JP029[6,2],fit7$probs$JP029[7,2],
+                    fit7$probs$JD144[1,2], fit7$probs$JD144[2,2], fit7$probs$JD144[3,2], fit7$probs$JD144[4,2],fit7$probs$JD144[5,2], fit7$probs$JD144[6,2],fit7$probs$JD144[7,2],
+                    fit7$probs$JP005[1,2], fit7$probs$JP005[2,2], fit7$probs$JP005[3,2], fit7$probs$JP005[4,2],fit7$probs$JP005[5,2], fit7$probs$JP005[6,2],fit7$probs$JP005[7,2],
+                    fit7$probs$JQ426[1,2], fit7$probs$JQ426[2,2], fit7$probs$JQ426[3,2], fit7$probs$JQ426[4,2],fit7$probs$JQ426[5,2], fit7$probs$JQ426[6,2],fit7$probs$JQ426[7,2],
+                    fit7$probs$JC215[1,2], fit7$probs$JC215[2,2], fit7$probs$JC215[3,2], fit7$probs$JC215[4,2],fit7$probs$JC215[5,2], fit7$probs$JC215[6,2],fit7$probs$JC215[7,2],
+                    fit7$probs$JQ349[1,2], fit7$probs$JQ349[2,2], fit7$probs$JQ349[3,2], fit7$probs$JQ349[4,2],fit7$probs$JQ349[5,2], fit7$probs$JQ349[6,2],fit7$probs$JQ349[7,2]),
+                  c(rep(c("class1", "class2","class3", "class4", "class5", "class6", "class7"), 7)))
+
+# Create the column name of the data frame
+names(ff7) <- c("variable", "probability", "class")
+# Plot the solution plot based on the data frame
+ggplot(ff7, aes(x = variable, y = probability, group = class, lty = class, color = class)) + 
+  geom_line() + geom_point()
+
+
+
+############################## Make the solution plot based on variable categorization ###########################
+
+# Create a data frame of the probability of missing in each of the seven classes
+ffr7 <- data.frame(c(rep("Sensitive", 7), rep("Difficult", 7)),
+                  c(mean(c(fit7$probs$JQ345[1,2], fit7$probs$JQ371[1,2],fit7$probs$JQ417[1,2],
+                           fit7$probs$JP041[1,2], fit7$probs$JP005[1,2], fit7$probs$JQ426[1,2],
+                           fit7$probs$JQ349[1,2])), 
+                    mean(c(fit7$probs$JQ345[2,2], fit7$probs$JQ371[2,2],fit7$probs$JQ417[2,2],
+                           fit7$probs$JP041[2,2], fit7$probs$JP005[2,2], fit7$probs$JQ426[2,2],
+                           fit7$probs$JQ349[2,2])),
+                    mean(c(fit7$probs$JQ345[3,2], fit7$probs$JQ371[3,2],fit7$probs$JQ417[3,2],
+                           fit7$probs$JP041[3,2], fit7$probs$JP005[3,2], fit7$probs$JQ426[3,2],
+                           fit7$probs$JQ349[3,2])),
+                    mean(c(fit7$probs$JQ345[4,2], fit7$probs$JQ371[4,2],fit7$probs$JQ417[4,2],
+                           fit7$probs$JP041[4,2], fit7$probs$JP005[4,2], fit7$probs$JQ426[4,2],
+                           fit7$probs$JQ349[4,2])),
+                    mean(c(fit7$probs$JQ345[5,2], fit7$probs$JQ371[5,2],fit7$probs$JQ417[5,2],
+                           fit7$probs$JP041[5,2], fit7$probs$JP005[5,2], fit7$probs$JQ426[5,2],
+                           fit7$probs$JQ349[5,2])), 
+                    mean(c(fit7$probs$JQ345[6,2], fit7$probs$JQ371[6,2],fit7$probs$JQ417[6,2],
+                           fit7$probs$JP041[6,2], fit7$probs$JP005[6,2], fit7$probs$JQ426[6,2],
+                           fit7$probs$JQ349[6,2])), 
+                    mean(c(fit7$probs$JQ345[7,2], fit7$probs$JQ371[7,2],fit7$probs$JQ417[7,2],
+                           fit7$probs$JP041[7,2], fit7$probs$JP005[7,2], fit7$probs$JQ426[7,2],
+                           fit7$probs$JQ349[7,2])), 
+                    mean(c(fit7$probs$JV000[1,2], fit7$probs$JH075[1,2], fit7$probs$JP047[1,2],
+                           fit7$probs$JN198[1,2], fit7$probs$JP034[1,2], fit7$probs$JD142[1,2], 
+                           fit7$probs$JP004[1,2], fit7$probs$JD143[1,2], fit7$probs$JP070[1,2],
+                           fit7$probs$JN147[1,2], fit7$probs$JG097[1,2], fit7$probs$JP029[1,2], 
+                           fit7$probs$JD144[1,2],  fit7$probs$JC215[1,2])),
+                    mean(c(fit7$probs$JV000[2,2], fit7$probs$JH075[2,2], fit7$probs$JP047[2,2],
+                           fit7$probs$JN198[2,2], fit7$probs$JP034[2,2], fit7$probs$JD142[2,2], 
+                           fit7$probs$JP004[2,2], fit7$probs$JD143[2,2], fit7$probs$JP070[2,2],
+                           fit7$probs$JN147[2,2], fit7$probs$JG097[2,2], fit7$probs$JP029[2,2], 
+                           fit7$probs$JD144[2,2],  fit7$probs$JC215[2,2])),
+                    mean(c(fit7$probs$JV000[3,2], fit7$probs$JH075[3,2], fit7$probs$JP047[3,2],
+                           fit7$probs$JN198[3,2], fit7$probs$JP034[3,2], fit7$probs$JD142[3,2], 
+                           fit7$probs$JP004[3,2], fit7$probs$JD143[3,2], fit7$probs$JP070[3,2],
+                           fit7$probs$JN147[3,2], fit7$probs$JG097[3,2], fit7$probs$JP029[3,2], 
+                           fit7$probs$JD144[3,2],  fit7$probs$JC215[3,2])),
+                    mean(c(fit7$probs$JV000[4,2], fit7$probs$JH075[4,2], fit7$probs$JP047[4,2],
+                           fit7$probs$JN198[4,2], fit7$probs$JP034[4,2], fit7$probs$JD142[4,2], 
+                           fit7$probs$JP004[4,2], fit7$probs$JD143[4,2], fit7$probs$JP070[4,2],
+                           fit7$probs$JN147[4,2], fit7$probs$JG097[4,2], fit7$probs$JP029[4,2], 
+                           fit7$probs$JD144[4,2],  fit7$probs$JC215[4,2])),
+                    mean(c(fit7$probs$JV000[5,2], fit7$probs$JH075[5,2], fit7$probs$JP047[5,2],
+                           fit7$probs$JN198[5,2], fit7$probs$JP034[5,2], fit7$probs$JD142[5,2], 
+                           fit7$probs$JP004[5,2], fit7$probs$JD143[5,2], fit7$probs$JP070[5,2],
+                           fit7$probs$JN147[5,2], fit7$probs$JG097[5,2], fit7$probs$JP029[5,2], 
+                           fit7$probs$JD144[5,2],  fit7$probs$JC215[5,2])), 
+                    mean(c(fit7$probs$JV000[6,2], fit7$probs$JH075[6,2], fit7$probs$JP047[6,2],
+                           fit7$probs$JN198[6,2], fit7$probs$JP034[6,2], fit7$probs$JD142[6,2], 
+                           fit7$probs$JP004[6,2], fit7$probs$JD143[6,2], fit7$probs$JP070[6,2],
+                           fit7$probs$JN147[6,2], fit7$probs$JG097[6,2], fit7$probs$JP029[6,2], 
+                           fit7$probs$JD144[6,2],  fit7$probs$JC215[6,2])),
+                    mean(c(fit7$probs$JV000[7,2], fit7$probs$JH075[7,2], fit7$probs$JP047[7,2],
+                           fit7$probs$JN198[7,2], fit7$probs$JP034[7,2], fit7$probs$JD142[7,2], 
+                           fit7$probs$JP004[7,2], fit7$probs$JD143[7,2], fit7$probs$JP070[7,2],
+                           fit7$probs$JN147[7,2], fit7$probs$JG097[7,2], fit7$probs$JP029[7,2], 
+                           fit7$probs$JD144[7,2],  fit7$probs$JC215[7,2]))),
+                  c(rep(c("class1", "class2","class3", "class4", "class5", "class6", "class7"), 2)))
+# Create the column name of the data frame
+names(ffr7) <- c("variable", "probability", "class")
+# Plot the solution plot based on the data frame
+ggplot(ffr7, aes(x = variable, y = probability, group = class, lty = class, color = class)) + 
+  geom_line() + geom_point()
+
+##################### Collapse the seven classes into three ##################
+
+# Create a new variable for the estimated latent class in the seven class model (which is the best fit for our study)
+ccc$predclass <- fit7$predclass
+ccc$class[ccc$predclass == 2]<-1
+ccc$class[ccc$predclass == 3 | ccc$predclass == 7] <- 2
+ccc$class[ccc$predclass == 1 | ccc$predclass == 4 | ccc$predclass == 5 | ccc$predclass == 6] <- 3
+
+# Create a data frame of the probability of missing in each of the three classes
+ffrr7 <- data.frame(c(rep("Sensitive", 3), rep("Difficult", 3)),
+                    c(mean(c(fit7$probs$JQ345[2,2], fit7$probs$JQ371[2,2],fit7$probs$JQ417[2,2],
+                              fit7$probs$JP041[2,2], fit7$probs$JP005[2,2], fit7$probs$JQ426[2,2],
+                              fit7$probs$JQ349[2,2])),
+                     (mean(c(fit7$probs$JQ345[3,2], fit7$probs$JQ371[3,2],fit7$probs$JQ417[3,2],
+                                 fit7$probs$JP041[3,2], fit7$probs$JP005[3,2], fit7$probs$JQ426[3,2],
+                                 fit7$probs$JQ349[3,2]))*0.0294+
+                        mean(c(fit7$probs$JQ345[7,2], fit7$probs$JQ371[7,2],fit7$probs$JQ417[7,2],
+                               fit7$probs$JP041[7,2], fit7$probs$JP005[7,2], fit7$probs$JQ426[7,2],
+                               fit7$probs$JQ349[7,2]))*0.1251)/(0.0294+0.1251),
+                     (mean(c(fit7$probs$JQ345[1,2], fit7$probs$JQ371[1,2],fit7$probs$JQ417[1,2],
+                                 fit7$probs$JP041[1,2], fit7$probs$JP005[1,2], fit7$probs$JQ426[1,2],
+                                 fit7$probs$JQ349[1,2]))*0.119+ 
+                        mean(c(fit7$probs$JQ345[4,2], fit7$probs$JQ371[4,2],fit7$probs$JQ417[4,2],
+                               fit7$probs$JP041[4,2], fit7$probs$JP005[4,2], fit7$probs$JQ426[4,2],
+                               fit7$probs$JQ349[4,2]))*0.0319+
+                       mean(c(fit7$probs$JQ345[5,2], fit7$probs$JQ371[5,2],fit7$probs$JQ417[5,2],
+                              fit7$probs$JP041[5,2], fit7$probs$JP005[5,2], fit7$probs$JQ426[5,2],
+                              fit7$probs$JQ349[5,2]))*0.015+
+                       mean(c(fit7$probs$JQ345[6,2], fit7$probs$JQ371[6,2],fit7$probs$JQ417[6,2],
+                              fit7$probs$JP041[6,2], fit7$probs$JP005[6,2], fit7$probs$JQ426[6,2],
+                              fit7$probs$JQ349[6,2]))*0.0433)/(0.119+0.0319+0.015+0.0433),
+                     mean(c(fit7$probs$JV000[2,2], fit7$probs$JH075[2,2], fit7$probs$JP047[2,2],
+                            fit7$probs$JN198[2,2], fit7$probs$JP034[2,2], fit7$probs$JD142[2,2], 
+                            fit7$probs$JP004[2,2], fit7$probs$JD143[2,2], fit7$probs$JP070[2,2],
+                            fit7$probs$JN147[2,2], fit7$probs$JG097[2,2], fit7$probs$JP029[2,2], 
+                            fit7$probs$JD144[2,2],  fit7$probs$JC215[2,2])),
+                     (mean(c(fit7$probs$JV000[3,2], fit7$probs$JH075[3,2], fit7$probs$JP047[3,2],
+                             fit7$probs$JN198[3,2], fit7$probs$JP034[3,2], fit7$probs$JD142[3,2], 
+                             fit7$probs$JP004[3,2], fit7$probs$JD143[3,2], fit7$probs$JP070[3,2],
+                             fit7$probs$JN147[3,2], fit7$probs$JG097[3,2], fit7$probs$JP029[3,2], 
+                             fit7$probs$JD144[3,2],  fit7$probs$JC215[3,2]))*0.0294+
+                        mean(c(fit7$probs$JV000[7,2], fit7$probs$JH075[7,2], fit7$probs$JP047[7,2],
+                               fit7$probs$JN198[7,2], fit7$probs$JP034[7,2], fit7$probs$JD142[7,2], 
+                               fit7$probs$JP004[7,2], fit7$probs$JD143[7,2], fit7$probs$JP070[7,2],
+                               fit7$probs$JN147[7,2], fit7$probs$JG097[7,2], fit7$probs$JP029[7,2], 
+                               fit7$probs$JD144[7,2],  fit7$probs$JC215[7,2]))*0.1251)/(0.0294+0.1251),
+                        (mean(c(fit7$probs$JV000[1,2], fit7$probs$JH075[1,2], fit7$probs$JP047[1,2],
+                            fit7$probs$JN198[1,2], fit7$probs$JP034[1,2], fit7$probs$JD142[1,2], 
+                            fit7$probs$JP004[1,2], fit7$probs$JD143[1,2], fit7$probs$JP070[1,2],
+                            fit7$probs$JN147[1,2], fit7$probs$JG097[1,2], fit7$probs$JP029[1,2], 
+                            fit7$probs$JD144[1,2],  fit7$probs$JC215[1,2]))*0.119+
+                         mean(c(fit7$probs$JV000[4,2], fit7$probs$JH075[4,2], fit7$probs$JP047[4,2],
+                            fit7$probs$JN198[4,2], fit7$probs$JP034[4,2], fit7$probs$JD142[4,2], 
+                            fit7$probs$JP004[4,2], fit7$probs$JD143[4,2], fit7$probs$JP070[4,2],
+                            fit7$probs$JN147[4,2], fit7$probs$JG097[4,2], fit7$probs$JP029[4,2], 
+                            fit7$probs$JD144[4,2],  fit7$probs$JC215[4,2]))*0.0319+ 
+                         mean(c(fit7$probs$JV000[5,2], fit7$probs$JH075[5,2], fit7$probs$JP047[5,2],
+                            fit7$probs$JN198[5,2], fit7$probs$JP034[5,2], fit7$probs$JD142[5,2], 
+                            fit7$probs$JP004[5,2], fit7$probs$JD143[5,2], fit7$probs$JP070[5,2],
+                            fit7$probs$JN147[5,2], fit7$probs$JG097[5,2], fit7$probs$JP029[5,2], 
+                            fit7$probs$JD144[5,2],  fit7$probs$JC215[5,2]))*0.015+ 
+                         mean(c(fit7$probs$JV000[6,2], fit7$probs$JH075[6,2], fit7$probs$JP047[6,2],
+                            fit7$probs$JN198[6,2], fit7$probs$JP034[6,2], fit7$probs$JD142[6,2], 
+                            fit7$probs$JP004[6,2], fit7$probs$JD143[6,2], fit7$probs$JP070[6,2],
+                            fit7$probs$JN147[6,2], fit7$probs$JG097[6,2], fit7$probs$JP029[6,2], 
+                            fit7$probs$JD144[6,2],  fit7$probs$JC215[6,2]))*0.0433)/(0.015+0.0319+0.119+0.0433)),
+                   c(rep(c("class1", "class2","class3"), 2)))
+# Create the column name of the data frame
+names(ffrr7) <- c("variable", "probability", "class")
+# Plot the solution plot based on the data frame
+ggplot(ffrr7, aes(x = variable, y = probability, group = class, lty = class, color = class)) + 
+  geom_line() + geom_point()
+
+##################### Have a look at the demographics for each class ###################
+# Gender, age, marital status, education, race/ethnicity
+
+# Merge the variables used for classification with demographic variable
+tracker <- read.SAScii("TRK2014TR_R.da", "TRK2014TR_R.sas")
+demographic <- merge(tracker[,c("HHID","PN","GENDER","JAGE","JMARST","DEGREE","RACE","HISPANIC")], 
+                     ccc, by = c("HHID", "PN"))
+
+demographic$his<-"NH"
+demographic$his[demographic$HISPANIC==1|demographic$HISPANIC==2|demographic$HISPANIC==3]<-"HIS"
+
+demographic$hisrace<-"NH O"
+demographic$hisrace[demographic$his=="HIS"]<-"HIS"
+demographic$hisrace[demographic$his!="HIS" & demographic$RACE==1]<-"NH W"
+demographic$hisrace[demographic$his!="HIS" & demographic$RACE==2]<-"NH B"
+demographic <- demographic[,-c(30,32,7,8)]
+
+demographic$JMARST[demographic$JMARST==5] <- 4
+
+library(gmodels)
+with(data=demographic, CrossTable(GENDER,class))
+with(data=demographic, CrossTable(JMARST,class))
+with(data=demographic, CrossTable(hisrace,class))
+
+aggregate(JAGE~class, FUN=mean,data = demographic)
+aggregate(JAGE~class, FUN=sd,data = demographic)
+aggregate(JAGE~class, FUN=min,data = demographic)
+aggregate(JAGE~class, FUN=max,data = demographic)
+summary(demographic$JAGE)
+sd(demographic$JAGE)
+
+# Input the attrition variable 
+load("attrition_2.rdata")
+names(attrition_2) <- c("HHID", "PN", "attrition")
+
+# Merge the dataset with attrition variable
+readyboot <- merge(demographic, attrition_2, by = c("HHID", "PN"))
+readyboot <- readyboot[, -c(7:27)]
+save(readyboot, file = "readyboot.RData")
+
